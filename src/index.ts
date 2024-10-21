@@ -1,7 +1,10 @@
 import bodyParser from 'body-parser';
-import express, { Application, Request, Response, NextFunction } from 'express';
-import { BadRequestError, NotFoundError } from './utils/ApiError';
+import express, { Application, NextFunction, Request, Response } from 'express';
+import { NotFoundError } from './utils/ApiError';
 import { ErrorHandler } from './middlewares/ErrorHandler';
+import config from './config/config';
+import connection from './utils/database';
+import { StatusCodes } from 'http-status-codes';
 
 const app: Application = express();
 
@@ -9,18 +12,30 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', (req: Request, res: Response) => {
-  throw new BadRequestError('User not found');
-  res.status(200).json({ message: 'Hello World' });
+  res.status(StatusCodes.OK).json({
+    message: 'Online Payment API',
+  });
 });
 
-app.use((req: Request) => {
-  throw new NotFoundError(req.path);
+app.use((req: Request, res: Response, next: Function) => {
+  next(new NotFoundError(req.path));
 });
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   ErrorHandler.handle(err, req, res, next);
 });
 
-app.listen(3000, () => {
-  console.log('Server is running on port 3000');
-});
+const PORT = config.appPort || 3000;
+
+const startServer = async () => {
+  try {
+    await connection;
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error(`Error occured: ${error}`);
+  }
+};
+
+startServer();
