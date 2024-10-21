@@ -1,15 +1,20 @@
 import bodyParser from 'body-parser';
 import express, { Application, NextFunction, Request, Response } from 'express';
+import cors from 'cors';
 import { NotFoundError } from './utils/ApiError';
 import { ErrorHandler } from './middlewares/ErrorHandler';
 import config from './config/config';
 import connection from './utils/database';
 import { StatusCodes } from 'http-status-codes';
+import router from './routes';
+import helmet from 'helmet';
 
 const app: Application = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors());
+app.use(helmet());
 
 app.get('/', (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json({
@@ -17,8 +22,10 @@ app.get('/', (req: Request, res: Response) => {
   });
 });
 
-app.use((req: Request, res: Response, next: Function) => {
-  next(new NotFoundError(req.path));
+app.use('/api', router);
+
+app.use((req: Request) => {
+  throw new NotFoundError(req.path);
 });
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
